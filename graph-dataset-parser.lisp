@@ -36,14 +36,16 @@ file."
       (loop
          :with user-id fixnum := 0
          :and follower-ids list := nil
-         :for line := (read-line input-s nil nil) :while line :do
-         (multiple-value-bind (uid fid) (values-list (parse-user-and-follower line))
-           (declare (type fixnum uid fid))
-           (when (/= user-id uid)
-             (when follower-ids (write-user-and-follwers user-id follower-ids output-s))
-             (setf user-id uid
-                   follower-ids nil))
-           (push fid follower-ids))
+         :for line :of-type (or (simple-array character) null) := (read-line input-s nil nil)
+         :while line :do
+         (when (char/= #\# (aref line 0))
+           (multiple-value-bind (uid fid) (values-list (parse-user-and-follower line))
+             (declare (type fixnum uid fid))
+             (when (/= user-id uid)
+               (when follower-ids (write-user-and-follwers user-id follower-ids output-s))
+               (setf user-id uid
+                     follower-ids nil))
+             (push fid follower-ids)))
          :finally (write-user-and-follwers user-id follower-ids output-s)))))
 
 (defun main (args)

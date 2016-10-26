@@ -16,19 +16,19 @@ elements: a user ID and a follower ID."
   (mapcar #'parse-integer (split-sequence:split-sequence #\Tab line)))
 
 (defun write-user-and-follwers (user-id follower-ids destination)
-  "Given a user ID and a list of follower IDs, write them out to the
-destination stream in a format that's suitable for consumption by
-Pregel+ applications."
   (declare (type fixnum user-id)
            (type list follower-ids)
            (type stream destination))
+  "Given a user ID and a list of follower IDs, write them out to the
+destination stream in a format that's suitable for consumption by
+Pregel+ applications."
   (format destination "~A~A~A ~{~A~^ ~}~%" user-id #\Tab (length follower-ids) follower-ids))
 
 (defun parse-graph-dataset (source-file output-file)
+  (declare (type string source-file output-file))
   "Convert a source file into a format that's suitable for consumption
 by Pregel+ applications and write the result out to a specified output
 file."
-  (declare (type string source-file output-file))
   (with-open-file (input-s source-file)
     (with-open-file (output-s output-file
                               :direction :output
@@ -50,8 +50,8 @@ file."
          :finally (write-user-and-follwers user-id follower-ids output-s)))))
 
 (defun main (args)
-  "The executable image's toplevel function."
   (declare (type list args))
+  "The executable image's toplevel function."
   (if (/= 3 (length args))
       (format t "Usage: ~A SOURCE-FILE OUTPUT-FILE~%" (first args))
       (parse-graph-dataset (second args) (third args))))

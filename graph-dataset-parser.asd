@@ -1,0 +1,11 @@
+;;;; graph-dataset-parser.asd
+
+(asdf:defsystem #:graph-dataset-parser
+  :description "A simple graph dataset parser utility"
+  :author "Smith Dhumbumroong <zodmaner@gmail.com>"
+  :license "Public Domain"
+  :depends-on (#:split-sequence)
+  :serial t
+  :components ((:file "package")
+               (:file "graph-dataset-parser")))
+

@@ -2,3 +2,4 @@
 *.asd~
 *.lisp~
 *.fasl
+/quicklisp-manifest.txt

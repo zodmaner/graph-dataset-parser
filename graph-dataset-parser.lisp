@@ -16,7 +16,7 @@ elements: a user ID and a follower ID."
   (mapcar #'parse-integer (split-sequence:split-sequence #\Tab line)))
 
 (defun write-user-and-follwers (user-id follower-ids destination)
-  "Given a user ID and a list of follower IDs, write to the
+  "Given a user ID and a list of follower IDs, write them out to the
 destination stream in a format that's suitable for consumption by
 Pregel+ applications."
   (declare (type fixnum user-id)
@@ -42,7 +42,8 @@ file."
            (multiple-value-bind (uid fid) (values-list (parse-user-and-follower line))
              (declare (type fixnum uid fid))
              (when (/= user-id uid)
-               (when follower-ids (write-user-and-follwers user-id follower-ids output-s))
+               (when follower-ids
+                 (write-user-and-follwers user-id follower-ids output-s))
                (setf user-id uid
                      follower-ids nil))
              (push fid follower-ids)))

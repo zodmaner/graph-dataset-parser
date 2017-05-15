@@ -1,6 +1,6 @@
 ;;;; package.lisp
 
 (defpackage #:graph-dataset-parser
-  (:use #:cl)
+  (:use #:cl #:split-sequence)
   (:export #:main))
 

@@ -2,56 +2,65 @@
 
 (in-package #:graph-dataset-parser)
 
-;;; "dataset-parser" goes here. Hacks and glory await!
+;;; "graph-dataset-parser" goes here. Hacks and glory await!
 
 (declaim (optimize (speed 3) (safety 0))
-         (inline parse-user-and-follower
-                 write-user-and-follwers
+         (inline parse-vertex-and-adjacent-vertex
+                 write-vertex-and-adjacent-vertices
                  split-sequence:split-sequence))
 
-(defun parse-user-and-follower (line)
-  (declare (type (simple-array character) line))
-  "Given a line from a graph, parse and return a list containing two
-elements: a user ID and a follower ID."
-  (mapcar #'parse-integer (split-sequence:split-sequence #\Tab line)))
+(defconstant +empty-list+ '())
 
-(defun write-user-and-follwers (user-id follower-ids destination)
-  (declare (type fixnum user-id)
-           (type list follower-ids)
-           (type stream destination))
-  "Given a user ID and a list of follower IDs, write them out to the
-destination stream in a format that's suitable for consumption by
-Pregel+ applications."
-  (format destination "~A~A~A ~{~A~^ ~}~%" user-id #\Tab (length follower-ids) follower-ids))
+(defparameter *default-vector-size* (expt 10 6))
 
-(defun parse-graph-dataset (source-file output-file)
-  (declare (type string source-file output-file))
-  "Convert a source file into a format that's suitable for consumption
-by Pregel+ applications and write the result out to a specified output
-file."
-  (with-open-file (input-s source-file)
-    (with-open-file (output-s output-file
-                              :direction :output
-                              :if-exists :overwrite :if-does-not-exist :create)
-      (loop
-         :with user-id fixnum := 0
-         :and follower-ids list := nil
-         :for line :of-type (or (simple-array character) null) := (read-line input-s nil nil)
-         :while line :do
-         (when (char/= #\# (aref line 0))
-           (multiple-value-bind (uid fid) (values-list (parse-user-and-follower line))
-             (declare (type fixnum uid fid))
-             (when (/= user-id uid)
-               (when follower-ids
-                 (write-user-and-follwers user-id follower-ids output-s))
-               (setf user-id uid
-                     follower-ids nil))
-             (push fid follower-ids)))
-         :finally (write-user-and-follwers user-id follower-ids output-s)))))
+(declaim (ftype (function (simple-string) list) parse-vertex-and-adjacent-vertex))
+(defun parse-vertex-and-adjacent-vertex (line)
+  "Given a line from a graph dataset, parse and return a list
+containing two elements: a vertex label and its adjacent vertex
+label."
+  (mapcar (lambda (s) (parse-integer s :junk-allowed t))
+          (split-sequence-if (lambda (c) (or (char= c #\Tab) (char= c #\space))) line)))
 
+(declaim (ftype (function (fixnum (vector fixnum)) t) write-vertex-and-adjacent-vertices))
+(defun write-vertex-and-adjacent-vertices (vertex adjacent-vertices)
+  "Given a vertex and a vector containing adjacent vertices, write
+them out to the *STANDARD-OUTPUT* in a format that's suitable for
+consumption by Pregel+/Palgol applications."
+  (format *standard-output* "~A~A~A ~A" vertex #\Tab vertex (length adjacent-vertices))
+  (loop :for adjv fixnum :across adjacent-vertices :do
+     (format *standard-output* " ~A ~A" adjv vertex))
+  (format *standard-output* "~%"))
+
+(declaim (ftype (function (pathname pathname) t) parse-graph-dataset))
+(defun parse-graph-dataset (src dst)
+  "Parse a graph dataset file into a format that's suitable for
+consumption by Pregel+/Palgol applications and write the result out to
+a specified output file."
+  (with-open-file (in-stream src)
+    (with-open-file (out-stream dst :direction :output
+                                :if-exists :supersede :if-does-not-exist :create)
+      (let ((*standard-output* out-stream))
+        (loop
+           :with vertex fixnum := -1
+           :and adjacent-vertices :of-type (vector fixnum) := (make-array *default-vector-size*
+                                                                          :element-type 'fixnum
+                                                                          :fill-pointer 0)
+           :for line :of-type (or simple-string null) := (read-line in-stream nil nil)
+           :while line :do
+           (when (and (char/= #\# (aref line 0)) (char/= #\% (aref line 0)))
+              (multiple-value-bind (v adjv) (values-list (parse-vertex-and-adjacent-vertex line))
+               (declare (fixnum v adjv))
+               (when (/= vertex v)
+                 (when (/= (length adjacent-vertices) 0)
+                   (write-vertex-and-adjacent-vertices vertex adjacent-vertices))
+                 (setf vertex v
+                       (fill-pointer adjacent-vertices) 0))
+               (vector-push adjv adjacent-vertices)))
+           :finally (write-vertex-and-adjacent-vertices vertex adjacent-vertices))))))
+
+(declaim (ftype (function (list) t) main))
 (defun main (args)
-  (declare (type list args))
   "The executable image's toplevel function."
   (if (/= 3 (length args))
-      (format t "Usage: ~A SOURCE-FILE OUTPUT-FILE~%" (first args))
-      (parse-graph-dataset (second args) (third args))))
+      (format t "Usage: ~A SOURCE DEST~%" (first args))
+      (parse-graph-dataset (pathname (second args)) (pathname (third args)))))

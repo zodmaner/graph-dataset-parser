@@ -21,7 +21,7 @@ label."
   (mapcar (lambda (s) (parse-integer s :junk-allowed t))
           (split-sequence-if (lambda (c) (or (char= c #\Tab) (char= c #\space))) line)))
 
-(declaim (ftype (function (fixnum (vector fixnum)) t) write-vertex-and-adjacent-vertices))
+(declaim (ftype (function (fixnum (vector fixnum)) null) write-vertex-and-adjacent-vertices))
 (defun write-vertex-and-adjacent-vertices (vertex adjacent-vertices)
   "Given a vertex and a vector containing adjacent vertices, write
 them out to the *STANDARD-OUTPUT* in a format that's suitable for
@@ -31,7 +31,7 @@ consumption by Pregel+/Palgol applications."
      (format *standard-output* " ~A ~A" adjv vertex))
   (format *standard-output* "~%"))
 
-(declaim (ftype (function (pathname pathname) t) parse-graph-dataset))
+(declaim (ftype (function (pathname pathname) null) parse-graph-dataset))
 (defun parse-graph-dataset (src dst)
   "Parse a graph dataset file into a format that's suitable for
 consumption by Pregel+/Palgol applications and write the result out to
@@ -58,7 +58,7 @@ a specified output file."
                (vector-push adjv adjacent-vertices)))
            :finally (write-vertex-and-adjacent-vertices vertex adjacent-vertices))))))
 
-(declaim (ftype (function (list) t) main))
+(declaim (ftype (function (list) null) main))
 (defun main (args)
   "The executable image's toplevel function."
   (if (/= 3 (length args))

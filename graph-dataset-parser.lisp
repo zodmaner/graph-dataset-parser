@@ -26,18 +26,18 @@ a specified output file."
                    (loop :for adjacent-vertex :across adjacent-vertices
                       :do (format *standard-output* " ~A ~A" adjacent-vertex vertex))
                    (format *standard-output* "~%")))))
-         (add-unwritten-vertex-to-set (vid set)
-           (when (null (gethash vid set))
-             (setf (gethash vid set) :unwritten)))
-         (add-written-vertex-to-set (vid set)
-           (let ((value (gethash vid set)))
+         (add-unwritten-vertex (vid ht)
+           (when (null (gethash vid ht))
+             (setf (gethash vid ht) :unwritten)))
+         (add/set-written-vertex (vid ht)
+           (let ((value (gethash vid ht)))
              (when (or (null value)
                        (eql value :unwritten))
-               (setf (gethash vid set) :written)))))
+               (setf (gethash vid ht) :written)))))
     (declare (inline parse-line
                      write-vertex
-                     add-unwritten-vertex-to-set
-                     add-written-vertex-to-set))
+                     add-unwritten-vertex
+                     add/set-written-vertex))
     (with-open-file (in-stream src)
       (with-open-file (out-stream dst
                                   :direction :output
@@ -56,14 +56,14 @@ a specified output file."
                  (when (/= vertex v)
                    (when (/= (length adjvs) 0)
                      (write-vertex vertex adjvs)
-                     (add-written-vertex-to-set vertex chvs))
+                     (add/set-written-vertex vertex chvs))
                    (setf vertex v
                          (fill-pointer adjvs) 0))
                  (vector-push-extend adjv adjvs)
-                 (add-unwritten-vertex-to-set adjv chvs)))
+                 (add-unwritten-vertex adjv chvs)))
              :finally
              (write-vertex vertex adjvs)
-             (add-written-vertex-to-set vertex chvs))
+             (add/set-written-vertex vertex chvs))
           ;; Next, we write the remaining unwritten leaf vertices in
           ;; the chvs set to the output file
           (when (< 0 (hash-table-count chvs))

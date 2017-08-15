@@ -30,10 +30,8 @@ a specified output file."
            (when (null (gethash vid ht))
              (setf (gethash vid ht) :unwritten)))
          (add/set-written-vertex (vid ht)
-           (let ((value (gethash vid ht)))
-             (when (or (null value)
-                       (eql value :unwritten))
-               (setf (gethash vid ht) :written)))))
+           (when (not (eql (gethash vid ht) :written))
+             (setf (gethash vid ht) :written))))
     (declare (inline parse-line
                      write-vertex
                      add-unwritten-vertex

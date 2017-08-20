@@ -12,7 +12,10 @@
   "Parse a graph dataset file into a format that's suitable for
 consumption by Pregel+/Palgol applications and write the result out to
 a specified output file."
-  (flet ((parse-line (line)
+  (flet ((comment-p (line)
+           (let ((first-char (aref line 0)))
+             (or (char= #\# first-char) (char= #\% first-char))))
+         (parse-line (line)
            (-<>> line
                  (split-sequence-if (lambda (c) (or (char= c #\Tab) (char= c #\space))))
                  (remove "" <> :test #'equal)
@@ -32,7 +35,8 @@ a specified output file."
          (add/set-written-vertex (vid ht)
            (when (not (eql (gethash vid ht) :written))
              (setf (gethash vid ht) :written))))
-    (declare (inline parse-line
+    (declare (inline comment-p
+                     parse-line
                      write-vertex
                      add-unwritten-vertex
                      add/set-written-vertex))
@@ -48,7 +52,7 @@ a specified output file."
              :with vertex fixnum := -1
              :for line :of-type (or simple-string null) := (read-line in-stream nil nil)
              :while line :do
-             (when (and (char/= #\# (aref line 0)) (char/= #\% (aref line 0)))
+             (when (not (comment-p line))
                (multiple-value-bind (v adjv) (values-list (parse-line line))
                  (declare (fixnum v adjv))
                  (when (/= vertex v)
@@ -63,7 +67,7 @@ a specified output file."
              (write-vertex vertex adjvs)
              (add/set-written-vertex vertex chvs))
           ;; Next, we write the remaining unwritten leaf vertices in
-          ;; the chvs set to the output file
+          ;; the chvs hash table to the output file
           (when (< 0 (hash-table-count chvs))
             (maphash (lambda (v s)
                        (when (eql s :unwritten)

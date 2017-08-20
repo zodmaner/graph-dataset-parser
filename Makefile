@@ -14,7 +14,7 @@ all: $(TARGET)
 
 $(TARGET): buildapp quicklisp-manifest.txt
 	./buildapp --manifest-file quicklisp-manifest.txt \
-		       --dynamic-space-size 4000 \
+		       --dynamic-space-size 6000 \
 			   --compress-core \
 			   --load-system $(SYSNAME) \
 			   --asdf-path "./" \

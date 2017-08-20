@@ -13,66 +13,64 @@
 consumption by Pregel+/Palgol applications and write the result out to
 a specified output file."
   (flet ((comment-p (line)
+           (declare (simple-string line))
            (let ((first-char (aref line 0)))
              (or (char= #\# first-char) (char= #\% first-char))))
          (parse-line (line)
+           (declare (simple-string line))
            (-<>> line
                  (split-sequence-if (lambda (c) (or (char= c #\Tab) (char= c #\space))))
-                 (remove "" <> :test #'equal)
+                 (remove "" <> :test #'string=)
                  (mapcar (lambda (s) (parse-integer s)))))
-         (write-vertex (vertex adjacent-vertices)
-           (let ((adjvs-len (length adjacent-vertices)))
-             (format *standard-output* "~A~A~A ~A" vertex #\Tab vertex adjvs-len)
+         (write-vertex (v adjvs)
+           (declare (fixnum v)
+                    ((vector fixnum) adjvs))
+           (let ((adjvs-len (length adjvs)))
+             (format *standard-output* "~A~A~A ~A" v #\Tab v adjvs-len)
              (if (= adjvs-len 0)
                  (format *standard-output* "~%")
                  (progn
-                   (loop :for adjacent-vertex :across adjacent-vertices
-                      :do (format *standard-output* " ~A ~A" adjacent-vertex vertex))
+                   (loop :for adjv fixnum :across adjvs
+                      :do (format *standard-output* " ~A ~A" adjv v))
                    (format *standard-output* "~%")))))
-         (add-unwritten-vertex (vid ht)
-           (when (null (gethash vid ht))
-             (setf (gethash vid ht) :unwritten)))
-         (add/set-written-vertex (vid ht)
-           (when (not (eql (gethash vid ht) :written))
-             (setf (gethash vid ht) :written))))
+         (add-vertex (v adjv ht)
+           (declare (fixnum v)
+                    ((or fixnum null) adjv))
+           (let ((adjvs (gethash v ht
+                                 (make-array 1 :element-type 'fixnum :fill-pointer 0))))
+             (declare ((vector fixnum) adjvs))
+             (when (and (not (null adjv))
+                        (not (find adjv adjvs)))
+               (vector-push-extend adjv adjvs))
+             (setf (gethash v ht) adjvs))))
     (declare (inline comment-p
                      parse-line
                      write-vertex
-                     add-unwritten-vertex
-                     add/set-written-vertex))
-    (with-open-file (in-stream src)
+                     add-vertex))
+    (let ((v-adjvs (make-hash-table)))
+      (with-open-file (in-stream src)
+        (loop :with lr fixnum := 0
+           :for line :of-type (or simple-string null) := (read-line in-stream nil nil)
+           :while line :do
+           (when (not (comment-p line))             
+             (multiple-value-bind (v adjv) (values-list (parse-line line))
+               (declare (fixnum v adjv))
+               (add-vertex v adjv v-adjvs)
+               (add-vertex adjv nil v-adjvs)
+               (format *error-output* "~A~A lines read... " #\Return lr)
+               (incf lr)))
+           :finally
+           (format *error-output* "Done.~%~A lines read; start writing... " lr)
+           (force-output *error-output*)))
       (with-open-file (out-stream dst
                                   :direction :output
                                   :if-exists :supersede
                                   :if-does-not-exist :create)
-        (let ((*standard-output* out-stream)
-              (adjvs (make-array 1000 :element-type 'fixnum :fill-pointer 0))
-              (chvs (make-hash-table)))
-          (loop
-             :with vertex fixnum := -1
-             :for line :of-type (or simple-string null) := (read-line in-stream nil nil)
-             :while line :do
-             (when (not (comment-p line))
-               (multiple-value-bind (v adjv) (values-list (parse-line line))
-                 (declare (fixnum v adjv))
-                 (when (/= vertex v)
-                   (when (/= (length adjvs) 0)
-                     (write-vertex vertex adjvs)
-                     (add/set-written-vertex vertex chvs))
-                   (setf vertex v
-                         (fill-pointer adjvs) 0))
-                 (vector-push-extend adjv adjvs)
-                 (add-unwritten-vertex adjv chvs)))
-             :finally
-             (write-vertex vertex adjvs)
-             (add/set-written-vertex vertex chvs))
-          ;; Next, we write the remaining unwritten leaf vertices in
-          ;; the chvs hash table to the output file
-          (when (< 0 (hash-table-count chvs))
-            (maphash (lambda (v s)
-                       (when (eql s :unwritten)
-                         (write-vertex v #())))
-                     chvs)))))))
+        (let ((*standard-output* out-stream))
+          (maphash (lambda (v adjv)
+                     (write-vertex v adjv))
+                   v-adjvs)))))
+  (format *error-output* "Done.~%"))
 
 (declaim (ftype (function (list) null) main))
 (defun main (args)

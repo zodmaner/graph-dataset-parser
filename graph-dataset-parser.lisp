@@ -4,7 +4,7 @@
 
 ;;; "graph-dataset-parser" goes here. Hacks and glory await!
 
-(declaim (optimize (speed 3) (safety 0))
+(declaim (optimize (speed 3) (safety 0) (debug 0))
          (inline split-sequence:split-sequence))
 
 (declaim (ftype (function (pathname pathname) null) parse-graph-dataset))
@@ -26,6 +26,7 @@ a specified output file."
            (declare (fixnum v)
                     ((vector fixnum) adjvs))
            (let ((adjvs-len (length adjvs)))
+             (declare (fixnum adjvs-len))
              (format *standard-output* "~A~A~A ~A" v #\Tab v adjvs-len)
              (if (= adjvs-len 0)
                  (format *standard-output* "~%")
@@ -47,7 +48,7 @@ a specified output file."
                      parse-line
                      write-vertex
                      add-vertex))
-    (let ((v-adjvs (make-hash-table)))
+    (let ((v-adjvs (make-hash-table :size 10000000)))
       (with-open-file (in-stream src)
         (loop :with lr fixnum := 0
            :for line :of-type (or simple-string null) := (read-line in-stream nil nil)

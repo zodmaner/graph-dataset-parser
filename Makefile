@@ -9,12 +9,13 @@
 SYSNAME = graph-dataset-parser
 TARGET = $(SYSNAME)
 ENTRYFUNC = $(SYSNAME):main
+DYNSIZE = 6000
 
 all: $(TARGET)
 
 $(TARGET): buildapp quicklisp-manifest.txt
 	./buildapp --manifest-file quicklisp-manifest.txt \
-		       --dynamic-space-size 6000 \
+		       --dynamic-space-size $(DYNSIZE) \
 			   --compress-core \
 			   --load-system $(SYSNAME) \
 			   --asdf-path "./" \

@@ -58,7 +58,7 @@ a specified output file."
                (declare (fixnum v adjv))
                (add-vertex v adjv v-adjvs)
                (add-vertex adjv nil v-adjvs)
-               (format *error-output* "~A~A lines read... " #\Return lr)
+               (format *error-output* "~A# of lines read: ~A... " #\Return lr)
                (incf lr)))
            :finally
            (format *error-output* "Done.~%~A lines read; start writing... " lr)
